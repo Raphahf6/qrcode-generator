@@ -9,6 +9,7 @@ EVO_URL = os.environ.get("EVOLUTION_URL")
 EVO_KEY = os.environ.get("EVOLUTION_KEY")
 INSTANCE = "Principal"
 
+@app.get("/", response_class=HTMLResponse)
 async def view_qr():
     # Adicionamos um parâmetro de força para garantir que ele tente pegar o QR
     url = f"{EVO_URL}/instance/connect/{INSTANCE}"
