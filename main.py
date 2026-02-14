@@ -39,18 +39,23 @@ async def home():
 @app.get("/reset")
 async def nuclear_reset():
     headers = {"apikey": EVO_KEY}
-    # 1. Tenta forçar um logout antes de deletar
-    requests.post(f"{EVO_URL}/instance/logout/{INSTANCE}", headers=headers)
-    # 2. Deleta a instância
+    
+    # 1. Limpeza total
     requests.delete(f"{EVO_URL}/instance/delete/{INSTANCE}", headers=headers)
-    # 3. Pausa de 2 segundos para o Banco Neon respirar e limpar os registros
-    time.sleep(2)
-    # 4. Recria com integração limpa
+    time.sleep(3) # Tempo para o banco Neon respirar
+    
+    # 2. Criação seguindo as Soluções Comuns que você encontrou
     payload = {
         "instanceName": INSTANCE,
         "token": EVO_KEY,
-        "integration": "WHATSAPP-BAILEYS",
-        "qrcode": True
+        "integration": "WHATSAPP-BAILEYS", # Integração correta
+        "qrcode": True,                    # Força a geração do QR
+        "browser": "Chrome"                # Garante compatibilidade
     }
-    requests.post(f"{EVO_URL}/instance/create", headers=headers, json=payload)
-    return HTMLResponse("<h1>Limpeza concluída! <a href='/'>Volte para a Home</a> e aguarde 10 segundos.</h1>")
+    
+    response = requests.post(f"{EVO_URL}/instance/create", headers=headers, json=payload)
+    
+    if response.status_code == 201:
+        return HTMLResponse("<h1>Versão Sincronizada! <a href='/'>Volte para a Home</a> e o QR Code deve aparecer em 10s.</h1>")
+    else:
+        return HTMLResponse(f"<h1>Erro na Criação: {response.text}</h1>")
