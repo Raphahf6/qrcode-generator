@@ -50,15 +50,21 @@ async def view_qr():
 @app.get("/reset")
 async def reset_instance():
     headers = {"apikey": EVO_KEY}
-    # 1. Tenta deletar a instância atual para limpar o banco Neon
+    
+    # 1. Deleta a instância zumbi
     requests.delete(f"{EVO_URL}/instance/delete/{INSTANCE}", headers=headers)
     
-    # 2. Cria a instância do zero (Tipo Baileys)
+    # 2. Cria do zero FORÇANDO a integração correta (Baileys)
     payload = {
         "instanceName": INSTANCE,
         "token": EVO_KEY,
+        "integration": "WHATSAPP-BAILEYS", # O SEGREDO ESTÁ AQUI
         "qrcode": True
     }
-    requests.post(f"{EVO_URL}/instance/create", headers=headers, json=payload)
     
-    return HTMLResponse("<h1>Instância Resetada! <a href='/'>Volte para a Home</a> para ver o QR Code.</h1>")
+    response = requests.post(f"{EVO_URL}/instance/create", headers=headers, json=payload)
+    
+    if response.status_code == 201:
+        return HTMLResponse("<h1>Resetado com Sucesso! <a href='/'>Volte para a Home</a> e o QR Code aparecerá agora.</h1>")
+    else:
+        return HTMLResponse(f"<h1>Erro no Reset: {response.text}</h1>")
