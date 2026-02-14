@@ -9,9 +9,8 @@ EVO_URL = os.environ.get("EVOLUTION_URL")
 EVO_KEY = os.environ.get("EVOLUTION_KEY")
 INSTANCE = "Principal"
 
-@app.get("/", response_class=HTMLResponse)
 async def view_qr():
-    # Rota de conexão da Evolution
+    # Adicionamos um parâmetro de força para garantir que ele tente pegar o QR
     url = f"{EVO_URL}/instance/connect/{INSTANCE}"
     headers = {"apikey": EVO_KEY}
     
@@ -19,29 +18,41 @@ async def view_qr():
         response = requests.get(url, headers=headers)
         data = response.json()
         
-        # Se retornar o QR Code, exibe
-        if "base64" in data:
+        # LOGICA TURBINADA: Se houver base64, MOSTRA. Independente de qualquer erro.
+        if data.get("base64"):
             qr_base64 = data["base64"]
             return f"""
             <html>
                 <body style="background:#0f172a; color:white; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif;">
                     <h1>Escaneie o QR Code - {INSTANCE}</h1>
-                    <div style="background:white; padding:20px; border-radius:10px;">
+                    <div style="background:white; padding:20px; border-radius:10px; box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);">
                         <img src="{qr_base64}" style="width:300px; height:300px;" />
                     </div>
-                    <p style="margin-top:20px;"><a href="/reset" style="color:#ef4444; text-decoration:none; font-weight:bold;">NÃO APARECEU? CLIQUE AQUI PARA RESETAR INSTÂNCIA</a></p>
+                    <p style="margin-top:20px; color:#22c55e; font-weight:bold;">SINAL VERDE: API respondendo!</p>
+                    <a href="/reset" style="color:grey; text-decoration:none; font-size:12px; margin-top:10px;">Resetar Instância</a>
                 </body>
             </html>
             """
-        # Se cair aqui, a instância está em "limbo"
+        
+        # Se estiver conectado de verdade
+        elif data.get("instance", {}).get("state") == "open":
+            return """
+            <body style="background:#0f172a; color:white; text-align:center; padding-top:100px; font-family:sans-serif;">
+                <h1 style="color:#22c55e;">✅ STATUS: CONECTADO!</h1>
+                <p>Seu WhatsApp já está autenticado.</p>
+                <p>Você já pode rodar o Robô de Disparos.</p>
+                <br>
+                <a href="/reset" style="color:red;">Desconectar e Gerar Novo QR</a>
+            </body>
+            """
+            
         else:
-            status = data.get('instance', {}).get('state', 'unknown')
+            # Caso caia no limbo, mostramos o erro real que a API está cuspindo
             return f"""
-            <body style="background:#0f172a; color:white; text-align:center; padding-top:50px; font-family:sans-serif;">
-                <h1>Estado: {status}</h1>
-                <p>A API diz que já está conectada ou em erro.</p>
-                <a href="/reset" style="background:#ef4444; color:white; padding:15px 30px; text-decoration:none; border-radius:5px; font-weight:bold;">FORÇAR RESET DA INSTÂNCIA</a>
-                <p style="margin-top:20px; color:grey;">(Isso vai apagar a instância e criar de novo para gerar o QR Code)</p>
+            <body style="background:#0f172a; color:white; text-align:center; padding-top:100px; font-family:sans-serif;">
+                <h1>Aguardando QR Code...</h1>
+                <p>Resposta da API: {data}</p>
+                <script>setTimeout(() => {{ window.location.reload(); }}, 3000);</script>
             </body>
             """
     except Exception as e:
